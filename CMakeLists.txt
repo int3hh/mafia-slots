@@ -27,10 +27,12 @@ endif()
 
 set(hdrs
     src/include/game.h
+    src/include/screens.h
 )
 
 set(srcs
     src/game.c
+    src/screens/screenGame.c
 )
 
 add_executable(${PROJECT_NAME} main.c ${hdrs} ${srcs})
