@@ -13,9 +13,6 @@ int main (int argc, char * argv[]) {
 
     while (!WindowShouldClose())   
     {
-        if (game.musicOn) {
-            UpdateMusicStream(soundTrack);
-        }
         update_game(&game);
         draw_game(&game);   
     }

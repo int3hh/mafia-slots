@@ -9,6 +9,7 @@ void game_update(Game * game) {
     } else {
         game->backgroundOn = 0;
     }
+    
 }
 
 void game_draw(Game * game) {
