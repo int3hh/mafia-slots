@@ -1,7 +1,9 @@
 #include "raylib.h"
 #include "src/include/game.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-Game game = {5000, 1, 1, 0, -1, 1, 1};
+Game game = {500, 1, 1, 0, -1, 0, 0};
 
 int main (int argc, char * argv[]) {
 
@@ -10,6 +12,9 @@ int main (int argc, char * argv[]) {
    // ToggleFullscreen();
     SetTargetFPS(60);
     load_assets();
+    for (int i = 0; i < REEL_ROW; i++) {
+        spin(&game);
+    }
 
     while (!WindowShouldClose())   
     {

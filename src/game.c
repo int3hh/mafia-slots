@@ -3,6 +3,14 @@
 #include "include/screens.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#ifdef linux
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/ioctl.h>
+    #include <linux/random.h>
+#endif
+
 
 Texture2D Images[GFX_END];
 Font Fonts[FONT_END];
@@ -12,15 +20,16 @@ Texture2D Cards[CARD_END];
 
 void load_assets () {
 
-    char gfx_filez[GFX_END][255] = {"assets/images/logo.png", "assets/images/background.png", "assets/images/background_off.png",
-                                   "assets/images/nomusic.png", "assets/images/nosfx.png"};
+    char gfx_filez[GFX_END][255] = {"assets/images/logo.png", "assets/images/background.png", "assets/images/backgroundoff.png",
+                                   "assets/images/nomusic.png", "assets/images/nosfx.png", "assets/images/spining.png"};
     char font_filez[FONT_END][255] = {"assets/fonts/gangster.ttf"};
     char soundtrack_file[255] = {"assets/sounds/soundtrack.ogg"};
     char card_filez[CARD_END][255] = {"assets/images/q_%d.png", "assets/images/a_%d.png", "assets/images/k_%d.png",
                                       "assets/images/j_%d.png", "assets/images/ten_%d.png", "assets/images/bomb_%d.png",
                                       "assets/images/money_%d.png", "assets/images/boss_%d.png", "assets/images/hustler_%d.png",
                                       "assets/images/rat_%d.png", "assets/images/scatter_%d.png", "assets/images/wild_%d.png"};
-    char sound_filez[S_END][255] = {};
+    char sound_filez[S_END][255] = {"assets/sounds/bet.ogg", "assets/sounds/glass.ogg", "assets/sounds/spin.ogg",
+                                    "assets/sounds/honk.ogg"};
 
     // Loading graphics 
     for (int i = 0; i < GFX_END; i++) {
@@ -42,10 +51,9 @@ void load_assets () {
         Cards[i] = LoadTexture(asset);
     }
 
- /*   for (int i = 0; i < S_END; i++) {
+    for (int i = 0; i < S_END; i++) {
         Sounds[i] = LoadSound(sound_filez[i]);
     }
-*/
 }
 
 void update_game (Game * game) {
@@ -117,6 +125,40 @@ void draw_game (Game * game) {
       EndDrawing();
 }
 
-void spin (int * reels) {
+void spin (Game * game) {
+    unsigned int reel[5];
+    int seeded = 0;
+    #ifdef linux
+        int c;
+        int fd = open("/dev/urandom", O_RDONLY);
+        if ( fd != -1 ) {
+            if ( ioctl(fd, RNDGETENTCNT, &c) == 0 && c > 160 ) {
+                  read(fd, &reel, sizeof(reel));
+                  seeded = 1;
+            }
+            close(fd);
+        } 
+    #endif
+    if (!seeded) {
+        printf("FATAL: Not enough randomness!");
+        exit(1);
+    }
+    for (int i = 0; i < 5; i++) {
+        reel[i] %= (CARD_END);
+    }
+    memcpy(&game->reels[2], &game->reels[1], sizeof(game->reels[1]));
+    memcpy(&game->reels[1], &game->reels[0], sizeof(game->reels[0]));
+    memcpy(&game->reels[0], &reel[0], sizeof(reel));
+    
+   //  printReel(game->reels);
+}
 
+void printReel(int reel[REEL_ROW][REEL_COLUMN]) {
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 5; j++) {
+            printf("%d\t", reel[i][j]);
+        }
+        printf("\n\n");
+    }
+    printf("-----------------------------------------------------\n\n");
 }
