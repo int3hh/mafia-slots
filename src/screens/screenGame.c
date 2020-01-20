@@ -102,8 +102,8 @@ void check_win(Game * game) {
                 if (game->winings[i][j] > 0) {
                     if (win < multipliers[game->reels[i][j]]) {
                         win = multipliers[game->reels[i][j]];
-                        cards++;
                     }
+                    cards++;
                 }
             }
         }
@@ -254,7 +254,7 @@ void game_draw(Game * game) {
         }
 
     if (game->spining) {
-        DrawTexture(Images[GFX_SPIN], 897, 670, WHITE);
+        DrawTexture(Images[GFX_SPIN], 468, 705, WHITE);
     }
 
     if (game->showLines) {

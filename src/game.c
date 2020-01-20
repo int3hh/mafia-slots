@@ -153,7 +153,7 @@ void spin (Game * game) {
    //  printReel(game->reels);
 }
 
-void printReel(int reel[REEL_ROW][REEL_COLUMN]) {
+void printReel(int reel[REEL_ROW][REEL_COLUMN]) {     
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 5; j++) {
             printf("%d\t", reel[i][j]);
