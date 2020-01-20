@@ -109,12 +109,31 @@ void check_win(Game * game) {
         }
         if (cards > BONUS_CARDS) {
             win++;
-            
         }
         game->betMultiplier = win;
         game->balance += (game->bet * game->lines) * game->betMultiplier;
+        if (game->sfxOn) {
+         PlaySound(Sounds[SND_WIN]);
+        }
     }
 
+}
+
+int check_scatter(Game * game) {
+  //  int line [] = {CARD_BOMB, CARD_Q, CARD_SCATTER, CARD_SCATTER, CARD_SCATTER};
+  //  memcpy(&game->reels[1][0], &line[0], sizeof(line));
+    memset(&game->winings[0][0], 0, sizeof(game->winings));
+    int count = 0;
+    for (int i = 0; i < REEL_ROW; i++) {
+        for (int j = 0; j < REEL_COLUMN; j++) {
+            if (game->reels[i][j] == CARD_SCATTER) {
+                game->winings[i][j] = 1;
+                count++;
+            }
+        }
+    }
+
+    return (count >= 5) ? 1 : 0;
 }
 
 void game_update(Game * game) {
@@ -124,8 +143,26 @@ void game_update(Game * game) {
         game->backgroundOn = 0;
     }
 
+    if (IsKeyPressed(KEY_S)) {
+        game->musicOn = !game->musicOn;
+        if (!game->musicOn) {
+            StopMusicStream(soundTrack);
+        } else {
+            PlayMusicStream(soundTrack);
+        }
+    } else {
+         if (game->musicOn) {
+            UpdateMusicStream(soundTrack);
+        }
+    }
+
+    if (IsKeyPressed(KEY_X)) {
+        game->sfxOn = !game->sfxOn;
+    }
+
+
     if (game->balance > 0) {
-        if (!game->spining) {
+        if (!game->spining && game->wonBonus == 0) {
             if (IsKeyPressed(KEY_BACKSPACE)) {
                 game->showLines = 1;
                 int new_bet = game->bet;
@@ -168,21 +205,25 @@ void game_update(Game * game) {
             game->showLines = 0;
              if (game->spining == 0) {
                  game->betMultiplier = 0;
-                if (game->balance - (game->bet * game->lines) < 0) {
-                    game->showLines = 1;
-                    game->lines = 1;
-                    game->bet = game->balance;
-                    if (game->sfxOn) {
-                        PlaySound(Sounds[SND_HONK]);
+                 if (game->wonBonus) {
+                     game->screen = SCREEN_BONUS;
+                 } else {
+                    if (game->balance - (game->bet * game->lines) < 0) {
+                        game->showLines = 1;
+                        game->lines = 1;
+                        game->bet = game->balance;
+                        if (game->sfxOn) {
+                            PlaySound(Sounds[SND_HONK]);
+                        }
+                    } else {
+                        spin(game);
+                        game->balance -= game->bet * game->lines;
+                        game->spining = 1;
+                        if (game->sfxOn) {
+                            PlaySound(Sounds[SND_SPIN]);
+                        }
                     }
-                } else {
-                    spin(game);
-                    game->balance -= game->bet * game->lines;
-                    game->spining = 1;
-                    if (game->sfxOn) {
-                        PlaySound(Sounds[SND_SPIN]);
-                    }
-                }
+                 }
             } else {
                 if (game->spining < 5) {
                     for (int k = 0; k < 5; k++) {
@@ -201,7 +242,14 @@ void game_update(Game * game) {
 
     if (game->spining) {
         if (game->spining >= 100) {
-            check_win(game);
+            if (check_scatter(game)) {
+                if (game->sfxOn) {
+                    PlaySound(Sounds[SND_BONUS]);
+                }
+                game->wonBonus = 1;
+            } else {
+                check_win(game);
+            }
             game->spining = 0;
         } else {
             game->spining += 1;
@@ -233,21 +281,30 @@ void game_draw(Game * game) {
         Vector2 initialPos = {187, 130};
         for (int i = 0; i < REEL_ROW; i++) {
             if (i) {
-                initialPos.y += Cards[CARD_Q].height + SPACER_H;
+                initialPos.y += Cards[CARD_Q][0].height + SPACER_H;
             }
             for (int j = 0; j < REEL_COLUMN; j++) {
-                Vector2 cardPos = {initialPos.x + (float) (j * Cards[CARD_Q].width), initialPos.y};
+                Vector2 cardPos = {initialPos.x + (float) (j * Cards[CARD_Q][0].width), initialPos.y};
                 if (j) {
                     cardPos.x += SPACER_W;
                 }
-                if (game->betMultiplier) {
+                if (game->betMultiplier != 0 || game->wonBonus != 0) {
                     if (game->winings[i][j] == 0) {
-                        DrawTexture(Cards[game->reels[i][j]], cardPos.x, cardPos.y, GRAY);    
+                        DrawTexture(Cards[game->reels[i][j]][0], cardPos.x, cardPos.y, GRAY);    
                     } else {
-                        DrawTexture(Cards[game->reels[i][j]], cardPos.x, cardPos.y, WHITE);    
+                        game->winings[i][j]++;
+                        if ( game->winings[i][j] >= MAX_CARDS ) {
+                                    game->winings[i][j] = 1;
+                        }
+                        DrawTexture(Cards[game->reels[i][j]][game->winings[i][j]], cardPos.x, cardPos.y, WHITE);    
                     }
                 } else {
-                    DrawTexture(Cards[game->reels[i][j]], cardPos.x, cardPos.y, WHITE);
+                    if (game->spining) {
+                        DrawTexture(Cards[game->reels[i][j]][0], cardPos.x, cardPos.y, WHITE);
+                    } else {
+                        DrawTexture(Cards[game->reels[i][j]][0], cardPos.x, cardPos.y, GRAY);
+                    }
+                    
                 }
                 
             }
@@ -269,5 +326,10 @@ void game_draw(Game * game) {
         sprintf(win, "WIN! Bet X%d = %d RON", game->betMultiplier, (game->bet * game->lines) * game->betMultiplier);
         Vector2 winPos = {308, 655};
         DrawTextEx(Fonts[FONT_GANGSTER], win, winPos, 42, 2, PINK);    
+    }
+
+    if (game->wonBonus) {
+        Vector2 bonusPos = {383, 560};
+        DrawTexture(Images[GFX_BONUS], bonusPos.x, bonusPos.y, WHITE);
     }
 }

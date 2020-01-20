@@ -16,12 +16,17 @@ Texture2D Images[GFX_END];
 Font Fonts[FONT_END];
 Sound Sounds[S_END];
 Music soundTrack;
-Texture2D Cards[CARD_END];
+Music bonusTrack;
+Texture2D Cards[CARD_END][24];
+Texture2D Bags[SUITCASES_END];
+Texture2D CLids[LID_STATES_MAX];
+Texture2D SLids[LID_STATES_MAX];
 
 void load_assets () {
 
     char gfx_filez[GFX_END][255] = {"assets/images/logo.png", "assets/images/background.png", "assets/images/backgroundoff.png",
-                                   "assets/images/nomusic.png", "assets/images/nosfx.png", "assets/images/spining.png"};
+                                   "assets/images/nomusic.png", "assets/images/nosfx.png", "assets/images/spining.png",
+                                   "assets/images/bonus.png", "assets/images/bonusbkgd.png", "assets/images/megawin.png"};
     char font_filez[FONT_END][255] = {"assets/fonts/gangster.ttf"};
     char soundtrack_file[255] = {"assets/sounds/soundtrack.ogg"};
     char card_filez[CARD_END][255] = {"assets/images/q_%d.png", "assets/images/a_%d.png", "assets/images/k_%d.png",
@@ -29,7 +34,12 @@ void load_assets () {
                                       "assets/images/money_%d.png", "assets/images/boss_%d.png", "assets/images/hustler_%d.png",
                                       "assets/images/rat_%d.png", "assets/images/scatter_%d.png", "assets/images/wild_%d.png"};
     char sound_filez[S_END][255] = {"assets/sounds/bet.ogg", "assets/sounds/glass.ogg", "assets/sounds/spin.ogg",
-                                    "assets/sounds/honk.ogg"};
+                                    "assets/sounds/honk.ogg", "assets/sounds/win.ogg", "assets/sounds/bonus.ogg",
+                                    "assets/sounds/megawin.ogg", "assets/sounds/lose.ogg"};
+
+    char suitcases_filez[SUITCASES_END][255] = {"assets/images/scenter_closed.png", "assets/images/sside_closed.png", "assets/images/scenter_empty.png", "assets/images/scenter_gold.png", "assets/images/scenter_money.png",
+                                           "assets/images/sside_empty.png", "assets/images/sside_gold.png", "assets/images/sside_money.png", "assets/images/scenter_1.png",
+                                           "assets/images/sside_1.png"};
 
     // Loading graphics 
     for (int i = 0; i < GFX_END; i++) {
@@ -41,39 +51,29 @@ void load_assets () {
     }
 
     soundTrack = LoadMusicStream(soundtrack_file);
+    bonusTrack = LoadMusicStream("assets/sounds/bonustrack.ogg");
     SetMusicVolume(soundTrack, 0.1f);
     PlayMusicStream(soundTrack);
 
     for (int i = 0; i < CARD_END; i++) {
-        char asset[255];
-        memset(asset, 0, sizeof(asset));
-        sprintf(asset, card_filez[i], 0);
-        Cards[i] = LoadTexture(asset);
+        for (int j = 0; j < MAX_CARDS; j++) {
+            char asset[255];
+            memset(asset, 0, sizeof(asset));
+            sprintf(asset, card_filez[i], j);
+            Cards[i][j] = LoadTexture(asset);
+        }
     }
 
     for (int i = 0; i < S_END; i++) {
         Sounds[i] = LoadSound(sound_filez[i]);
     }
+    for (int i = 0; i < SUITCASES_END; i++) {
+        Bags[i] = LoadTexture(suitcases_filez[i]);
+    }
+
 }
 
 void update_game (Game * game) {
-
-    if (IsKeyPressed(KEY_S)) {
-        game->musicOn = !game->musicOn;
-        if (!game->musicOn) {
-            StopMusicStream(soundTrack);
-        } else {
-            PlayMusicStream(soundTrack);
-        }
-    } else {
-         if (game->musicOn) {
-            UpdateMusicStream(soundTrack);
-        }
-    }
-
-    if (IsKeyPressed(KEY_X)) {
-        game->sfxOn = !game->sfxOn;
-    }
 
     switch (game->screen)
     {
@@ -85,6 +85,9 @@ void update_game (Game * game) {
         break;
     case SCREEN_GAME:
         game_update(game);
+        break;
+    case SCREEN_BONUS:
+        bonus_update(game);
         break;
 
     default:
@@ -111,6 +114,13 @@ void draw_game (Game * game) {
                game_draw(game);
             }
             break;
+          case SCREEN_BONUS:
+            if (game->wonBonus != 0) {
+                bonus_stage(game);
+            } else {
+                 bonus_draw(game);
+            }
+            break;
       }
 
     if (!game->sfxOn) {
@@ -125,21 +135,24 @@ void draw_game (Game * game) {
       EndDrawing();
 }
 
-void spin (Game * game) {
-    unsigned int reel[5];
-    int seeded = 0;
+int getRandomReel(unsigned int * reel) {
     #ifdef linux
         int c;
         int fd = open("/dev/urandom", O_RDONLY);
         if ( fd != -1 ) {
             if ( ioctl(fd, RNDGETENTCNT, &c) == 0 && c > 160 ) {
-                  read(fd, &reel, sizeof(reel));
-                  seeded = 1;
+                  read(fd, &reel[0], sizeof(unsigned int) * REEL_COLUMN);
+                  return 1;
             }
             close(fd);
         } 
     #endif
-    if (!seeded) {
+    return 0;
+}
+
+void spin (Game * game) {
+    unsigned int reel[5];
+    if (getRandomReel(&reel[0]) == 0) {
         printf("FATAL: Not enough randomness!");
         exit(1);
     }

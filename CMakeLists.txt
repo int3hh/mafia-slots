@@ -33,6 +33,7 @@ set(hdrs
 set(srcs
     src/game.c
     src/screens/screenGame.c
+    src/screens/screenBonus.c
 )
 
 add_executable(${PROJECT_NAME} main.c ${hdrs} ${srcs})
