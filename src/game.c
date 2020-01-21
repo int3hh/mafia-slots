@@ -142,11 +142,19 @@ int getRandomReel(unsigned int * reel) {
         if ( fd != -1 ) {
             if ( ioctl(fd, RNDGETENTCNT, &c) == 0 && c > 160 ) {
                   read(fd, &reel[0], sizeof(unsigned int) * REEL_COLUMN);
+                  close(fd);
                   return 1;
             }
-            close(fd);
         } 
+    #elif __APPLE__
+        FILE * fp = fopen("/dev/urandom", "r");
+        if (fp != NULL) {
+            fread(&reel[0], 1, sizeof(unsigned int) * REEL_COLUMN, fp);
+            fclose(fp);
+            return 1;
+        }
     #endif
+
     return 0;
 }
 

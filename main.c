@@ -9,7 +9,7 @@ int main (int argc, char * argv[]) {
 
     InitWindow(SCREEN_W, SCREEN_H, "Mafia Slots");
     InitAudioDevice();   
-   // ToggleFullscreen();
+    ToggleFullscreen();
     SetTargetFPS(60);
     load_assets();
     for (int i = 0; i < REEL_ROW; i++) {
