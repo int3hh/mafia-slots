@@ -3,24 +3,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(PLATFORM_WEB)
+    #include <emscripten/emscripten.h>
+#endif
+
 Game game = {500, 1, 1, 0, -1, 0, 0};
+
+void main_loop() {
+        update_game(&game);
+        draw_game(&game);  
+}
 
 int main (int argc, char * argv[]) {
 
+    #if defined(PLATFORM_WEB)
+        srand(0);
+    #endif
+
     InitWindow(SCREEN_W, SCREEN_H, "Mafia Slots");
     InitAudioDevice();   
-    ToggleFullscreen();
-    SetTargetFPS(60);
-    load_assets();
-    for (int i = 0; i < REEL_ROW; i++) {
-        spin(&game);
-    }
-
-    while (!WindowShouldClose())   
+  //  ToggleFullscreen();
+    
+    #if defined(PLATFORM_WEB)
+        emscripten_set_main_loop(&main_loop, 0, 1);
+    #else
+        SetTargetFPS(60);   // Set our game to run at 60 frames-per-second
+    //--------------------------------------------------------------------------------------
+    
+    // Main game loop
+    while (!WindowShouldClose())    // Detect window close button or ESC key
     {
-        update_game(&game);
-        draw_game(&game);   
+        main_loop();
     }
+    #endif
 
     CloseWindow();      
 

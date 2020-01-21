@@ -78,10 +78,6 @@ void update_game (Game * game) {
     switch (game->screen)
     {
     case SCREEN_SPLASH:
-        if (GetTime() > 3) {
-            game->screen = SCREEN_GAME;
-            game->spining = -1;
-        }
         break;
     case SCREEN_GAME:
         game_update(game);
@@ -104,6 +100,12 @@ void draw_game (Game * game) {
                 ClearBackground(BLACK);
                 DrawTexture(Images[GFX_LOGO], SCREEN_W / 2 - (Images[GFX_LOGO].height*2)  , SCREEN_H / 2 - Images[GFX_LOGO].height, WHITE);
                 game->spining = 0;
+                load_assets();
+            } else {
+                for (int i = 0; i < REEL_ROW; i++) {
+                    spin(game);
+                }
+                game->screen = SCREEN_GAME;
             }
             break;
           case SCREEN_GAME:
@@ -153,6 +155,11 @@ int getRandomReel(unsigned int * reel) {
             fclose(fp);
             return 1;
         }
+    #elif PLATFORM_WEB
+        for (int i = 0; i < REEL_COLUMN; i++) {
+            reel[i] = rand();
+        }
+        return 1;
     #endif
 
     return 0;
